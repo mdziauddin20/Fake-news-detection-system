@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TruthScan — AI Fake News Detector</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style_new.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- Animated background orbs -->
+    <div class="bg-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+        <div class="orb orb-4"></div>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <div class="brand-icon">
+                <i class="fas fa-shield-halved"></i>
+            </div>
+            <span>TruthScan</span>
+        </div>
+        <div class="nav-right">
+            <span class="nav-badge"><i class="fas fa-microchip"></i> AI Powered</span>
+        </div>
+    </nav>
+
+    <main class="container">
+
+        <!-- Hero -->
+        <div class="hero">
+            <h1 class="hero-title">
+                Detect Fake News<br>with AI Precision
+            </h1>
+            <p class="hero-subtitle">
+                Advanced machine learning ensemble combining PassiveAggressive Classifier, Logistic Regression, and Naive Bayes.
+                Trained on 85,000+ articles for superior accuracy.
+            </p>
+            <div class="hero-features">
+                <div class="feature-badge">
+                    <span class="feature-icon">🤖</span>
+                    <span>AI Ensemble Model</span>
+                </div>
+                <div class="feature-badge">
+                    <span class="feature-icon">📊</span>
+                    <span>89% Accuracy</span>
+                </div>
+                <div class="feature-badge">
+                    <span class="feature-icon">⚡</span>
+                    <span>Instant Analysis</span>
+                </div>
+                <div class="feature-badge">
+                    <span class="feature-icon">🌍</span>
+                    <span>Global Coverage</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Card -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">
+                    <i class="fas fa-newspaper"></i>
+                </div>
+                <div class="card-title">
+                    📰 Paste Your News Article
+                </div>
+            </div>
+            <form id="newsForm" action="/predict" method="POST">
+                <div class="textarea-wrapper">
+                    <textarea
+                        name="news"
+                        id="newsInput"
+                        placeholder="Paste or type a news article here to analyze its authenticity and credibility..."
+                        required>{{ news_text or '' }}</textarea>
+                    <div class="char-counter" id="wordCounter">0 words</div>
+                </div>
+                <button type="submit" class="btn" id="analyzeBtn">
+                    <span class="btn-text"><i class="fas fa-magnifying-glass-chart btn-icon"></i>&nbsp; Analyze Article</span>
+                    <span class="btn-loading" style="display:none;"><i class="fas fa-circle-notch btn-icon"></i>&nbsp; Analyzing...</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Error alert -->
+        {% if error %}
+        <div class="alert alert-error">
+            <i class="fas fa-circle-exclamation"></i>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
+        <!-- Short article warning -->
+        {% if short_article_warning %}
+        <div class="alert alert-warning">
+            <i class="fas fa-triangle-exclamation"></i>
+            <span>{{ short_article_warning }}</span>
+        </div>
+        {% endif %}
+
+        <!-- ===== Results ===== -->
+        {% if result %}
+        <div class="results show" id="results">
+
+            <!-- Main verdict -->
+            <div class="card verdict-card {{ 'verdict-real' if 'REAL' in result else ('verdict-uncertain' if 'UNCERTAIN' in result else 'verdict-fake') }}">
+                <div class="verdict-icon">
+                    {% if 'REAL' in result %}
+                        ✓
+                    {% elif 'UNCERTAIN' in result %}
+                        ?
+                    {% else %}
+                        ✕
+                    {% endif %}
+                </div>
+                <p class="verdict-label">Analysis Result</p>
+                <h2 class="verdict-title">{{ label }}</h2>
+                <p class="verdict-text">
+                    {% if 'REAL' in result %}
+                        This article exhibits patterns consistent with credible, factual reporting. However, always verify important news from multiple sources.
+                    {% elif 'UNCERTAIN' in result %}
+                        This article shows mixed signals. The model cannot confidently classify it. This often happens with unfamiliar content, regional news, or articles with unconventional patterns. Use additional fact-checking sources.
+                    {% else %}
+                        This article shows patterns commonly associated with misinformation or fabricated content. Verify from credible sources before sharing.
+                    {% endif %}
+                </p>
+                <div class="verdict-badge {{ 'badge-real' if 'REAL' in result else ('badge-uncertain' if 'UNCERTAIN' in result else 'badge-fake') }}">
+                    {% if 'UNCERTAIN' in result %}UNCERTAIN{% else %}{{ result }}{% endif %}
+                </div>
+            </div>
+
+            <!-- Confidence Section -->
+            <div class="card confidence-section">
+                <div class="confidence-header">
+                    <div class="confidence-label">
+                        <i class="fas fa-gauge-high"></i>
+                        Confidence Score
+                    </div>
+                    <div class="confidence-value">{{ confidence }}%</div>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar {{ 'progress-real' if 'REAL' in result else ('progress-uncertain' if 'UNCERTAIN' in result else 'progress-fake') }}"
+                         style="width: {{ confidence }}%"></div>
+                </div>
+            </div>
+
+            <!-- Article Statistics -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <div class="card-title">
+                        📊 Article Statistics
+                    </div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-icon">📝</div>
+                        <span class="stat-value">{{ word_count }}</span>
+                        <span class="stat-label">Words</span>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">🔤</div>
+                        <span class="stat-value">{{ char_count }}</span>
+                        <span class="stat-label">Characters</span>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">📄</div>
+                        <span class="stat-value">{{ sentence_count }}</span>
+                        <span class="stat-label">Sentences</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Disclaimer -->
+            <div class="alert alert-warning">
+                <div class="alert-icon">⚠️</div>
+                <span><strong>Important:</strong> This model was trained primarily on US/Western news sources and 3 Indian datasets (total 85,701 articles). It may be less accurate with regional news, specialized topics, or unconventional writing styles. When uncertain, it will show an "UNCERTAIN" result. Always verify important news from multiple credible sources.</span>
+            </div>
+
+        </div>
+        {% endif %}
+
+        <!-- How It Works -->
+        <section class="info-section">
+            <h2 class="section-title">⚙️ How It Works</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <h3 class="info-item-title">
+                        <span>01</span>
+                        📝 Paste Article
+                    </h3>
+                    <p class="info-item-text">Copy and paste the full news article or headline you want to verify into the text box above. Longer articles provide more data for accurate analysis.</p>
+                </div>
+                <div class="info-item">
+                    <h3 class="info-item-title">
+                        <span>02</span>
+                        🤖 AI Processing
+                    </h3>
+                    <p class="info-item-text">TF-IDF vectorization extracts 10,000 linguistic features (unigrams + bigrams). Our ensemble model (PAC, LogReg, NaiveBayes) processes these features with soft voting.</p>
+                </div>
+                <div class="info-item">
+                    <h3 class="info-item-title">
+                        <span>03</span>
+                        ⚡ Instant Result
+                    </h3>
+                    <p class="info-item-text">Get a credibility verdict with confidence score (70% threshold for certainty), full article statistics, and uncertainty alerts in milliseconds.</p>
+                </div>
+            </div>
+
+            <h2 class="section-title" style="margin-top: 48px;">🛠️ Technology Stack</h2>
+            <div class="tech-stack">
+                <div class="tech-badge"><i class="fab fa-python"></i> Python 3.13</div>
+                <div class="tech-badge"><i class="fas fa-flask"></i> Flask 3.0</div>
+                <div class="tech-badge"><i class="fas fa-brain"></i> scikit-learn 1.8</div>
+                <div class="tech-badge"><i class="fas fa-table-cells"></i> TF-IDF (10K features)</div>
+                <div class="tech-badge"><i class="fas fa-robot"></i> Ensemble Model</div>
+                <div class="tech-badge"><i class="fas fa-chart-line"></i> Logistic Regression</div>
+                <div class="tech-badge"><i class="fas fa-network-wired"></i> Naive Bayes</div>
+                <div class="tech-badge"><i class="fas fa-database"></i> 85,701 articles</div>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
